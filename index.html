@@ -42,6 +42,11 @@
       font-size: 1.1rem;
       color: #28a745;
     }
+    #cameraSelect {
+      margin-top: 20px;
+      padding: 8px;
+      font-size: 1rem;
+    }
     footer {
       font-size: 0.8rem;
       color: #888;
@@ -56,12 +61,16 @@
 </head>
 <body>
   <header>📷 สแกน QR โต๊ะทำงาน</header>
+  <select id="cameraSelect">
+    <option disabled selected>กรุณาเลือกกล้อง...</option>
+  </select>
   <div id="reader"></div>
-  <div id="status">กำลังขอสิทธิ์กล้อง...</div>
+  <div id="status">กำลังโหลดรายการกล้อง...</div>
 
   <script>
     const formBase = "https://docs.google.com/forms/d/e/1FAIpQLSe_HSHdDyoEFAcYR1YOaCzPNv1DbNDSdxBsyNJXg6kDIOOCNQ/viewform?usp=pp_url&entry.178830938=";
     let html5QrScanner;
+    let cameras = [];
 
     function onScanSuccess(decodedText, decodedResult) {
       document.getElementById("status").innerText = "✅ สแกนแล้ว: " + decodedText;
@@ -72,23 +81,62 @@
 
     function onScanError(errorMessage) {}
 
-    function startCameraWithFacingMode() {
-      html5QrScanner = new Html5Qrcode("reader");
-      html5QrScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess,
-        onScanError
-      ).then(() => {
-        document.getElementById("status").innerText = "📷 พร้อมสแกนแล้ว";
-      }).catch(err => {
-        console.error("ไม่สามารถเริ่มกล้อง:", err);
-        document.getElementById("status").innerText = "❌ ไม่สามารถเริ่มกล้อง (กล้องหลัง)";
-      });
+    function startCamera(cameraId) {
+      if (html5QrScanner) {
+        html5QrScanner.stop().then(() => {
+          html5QrScanner.clear();
+          html5QrScanner.start(
+            cameraId,
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            onScanError
+          ).then(() => {
+            document.getElementById("status").innerText = "📷 พร้อมสแกนแล้ว";
+          }).catch(err => {
+            console.error("ไม่สามารถเริ่มกล้อง:", err);
+            document.getElementById("status").innerText = "❌ ไม่สามารถเริ่มกล้อง";
+          });
+        });
+      } else {
+        html5QrScanner = new Html5Qrcode("reader");
+        html5QrScanner.start(
+          cameraId,
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          onScanSuccess,
+          onScanError
+        ).then(() => {
+          document.getElementById("status").innerText = "📷 พร้อมสแกนแล้ว";
+        }).catch(err => {
+          console.error("ไม่สามารถเริ่มกล้อง:", err);
+          document.getElementById("status").innerText = "❌ ไม่สามารถเริ่มกล้อง";
+        });
+      }
     }
 
-    // เรียกใช้กล้องหลังทันที
-    startCameraWithFacingMode();
+    Html5Qrcode.getCameras().then(cams => {
+      if (cams && cams.length) {
+        cameras = cams;
+        const select = document.getElementById("cameraSelect");
+        cams.forEach((cam, idx) => {
+          const option = document.createElement("option");
+          option.value = cam.id;
+          option.text = cam.label || `Camera ${idx + 1}`;
+          select.appendChild(option);
+        });
+
+        select.onchange = () => {
+          const selectedCameraId = select.value;
+          startCamera(selectedCameraId);
+        };
+
+        document.getElementById("status").innerText = "📷 กรุณาเลือกกล้องเพื่อเริ่มสแกน";
+      } else {
+        document.getElementById("status").innerText = "❌ ไม่พบกล้อง";
+      }
+    }).catch(err => {
+      console.error("ไม่สามารถเข้าถึงกล้อง:", err);
+      document.getElementById("status").innerHTML = "<span class='warning'>❌ กรุณาอนุญาตกล้อง หรือเปิดด้วย Chrome/Safari</span>";
+    });
   </script>
 
   <footer>บริษัท อินเทอร์เน็ตประเทศไทย จำกัด (มหาชน) © 2024</footer>
