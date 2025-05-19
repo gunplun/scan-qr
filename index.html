@@ -70,7 +70,6 @@
   <script>
     const formBase = "https://docs.google.com/forms/d/e/1FAIpQLSe_HSHdDyoEFAcYR1YOaCzPNv1DbNDSdxBsyNJXg6kDIOOCNQ/viewform?usp=pp_url&entry.178830938=";
     let html5QrScanner;
-    let cameras = [];
 
     function onScanSuccess(decodedText, decodedResult) {
       document.getElementById("status").innerText = "✅ สแกนแล้ว: " + decodedText;
@@ -114,25 +113,28 @@
     }
 
     Html5Qrcode.getCameras().then(cams => {
-      if (cams && cams.length) {
-        cameras = cams;
-        const select = document.getElementById("cameraSelect");
-        cams.forEach((cam, idx) => {
-          const option = document.createElement("option");
-          option.value = cam.id;
-          option.text = cam.label || `Camera ${idx + 1}`;
-          select.appendChild(option);
-        });
+      const select = document.getElementById("cameraSelect");
+      cams.forEach((cam, index) => {
+        const option = document.createElement("option");
+        option.value = cam.id;
+        option.text = cam.label || `กล้อง ${index + 1}`;
+        select.appendChild(option);
+      });
 
-        select.onchange = () => {
-          const selectedCameraId = select.value;
-          startCamera(selectedCameraId);
-        };
+      select.onchange = () => {
+        const selectedCameraId = select.value;
+        startCamera(selectedCameraId);
+      };
 
-        document.getElementById("status").innerText = "📷 กรุณาเลือกกล้องเพื่อเริ่มสแกน";
-      } else {
-        document.getElementById("status").innerText = "❌ ไม่พบกล้อง";
-      }
+      // เริ่มต้นอัตโนมัติด้วยกล้องหลัง (ถ้ามี)
+      const backCam = cams.find(cam =>
+        cam.label.toLowerCase().includes("back") ||
+        cam.label.toLowerCase().includes("environment")
+      );
+      const defaultCamId = backCam ? backCam.id : cams[0].id;
+      select.value = defaultCamId;
+      startCamera(defaultCamId);
+
     }).catch(err => {
       console.error("ไม่สามารถเข้าถึงกล้อง:", err);
       document.getElementById("status").innerHTML = "<span class='warning'>❌ กรุณาอนุญาตกล้อง หรือเปิดด้วย Chrome/Safari</span>";
