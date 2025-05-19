@@ -72,35 +72,23 @@
 
     function onScanError(errorMessage) {}
 
-    function startWithPreferredCamera(cameraId) {
+    function startCameraWithFacingMode() {
       html5QrScanner = new Html5Qrcode("reader");
       html5QrScanner.start(
-        cameraId,
+        { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         onScanSuccess,
         onScanError
-      ).catch(err => {
+      ).then(() => {
+        document.getElementById("status").innerText = "📷 พร้อมสแกนแล้ว";
+      }).catch(err => {
         console.error("ไม่สามารถเริ่มกล้อง:", err);
-        document.getElementById("status").innerText = "❌ ไม่สามารถเริ่มกล้อง";
+        document.getElementById("status").innerText = "❌ ไม่สามารถเริ่มกล้อง (กล้องหลัง)";
       });
     }
 
-    Html5Qrcode.getCameras().then(cameras => {
-      if (cameras && cameras.length) {
-        const backCamera = cameras.find(cam =>
-          cam.label.toLowerCase().includes("back") ||
-          cam.label.toLowerCase().includes("environment")
-        );
-        const cameraIdToUse = backCamera ? backCamera.id : cameras[0].id;
-        document.getElementById("status").innerText = "📷 พร้อมสแกนแล้ว";
-        startWithPreferredCamera(cameraIdToUse);
-      } else {
-        document.getElementById("status").innerText = "❌ ไม่พบกล้อง";
-      }
-    }).catch(err => {
-      console.error("ไม่สามารถเข้าถึงกล้อง:", err);
-      document.getElementById("status").innerHTML = "<span class='warning'>❌ กรุณาอนุญาตกล้อง หรือเปิดด้วย Chrome/Safari</span>";
-    });
+    // เรียกใช้กล้องหลังทันที
+    startCameraWithFacingMode();
   </script>
 
   <footer>บริษัท อินเทอร์เน็ตประเทศไทย จำกัด (มหาชน) © 2024</footer>
